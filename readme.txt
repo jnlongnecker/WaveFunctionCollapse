@@ -3,10 +3,9 @@ IS NOT THE OFFICIAL SOURCE CODE. If you want to find the original source code th
 it can be found here: https://github.com/mxgmn/WaveFunctionCollapse. This code, while functionally identical 
 to the original Wave Function Collapse algorithm, has my own comments for making sense of the algorithm.
 
-This edit is made to be educational in purposes only, and in no way claims ownership, authorship, or any right
-to the algorithm or source code. The only thing original about these files is this readme and the comments 
-within the algorithm itself. I hope you find these files helpful in your understanding of this very
-interesting and useful algorithm.
+This edit is made to be educational in purposes only, and in no way claims to be the original author.
+The only thing original about these files is this readme and the comments within the algorithm itself. I 
+hope you find these files helpful in your understanding of this very interesting and useful algorithm.
 
 At this point in time, the only variation of this algorithm I'm particularly interested in is the Overlapping
 Model version, so that is the one that is commented. Of course, the base Model class has comments as it's
@@ -136,3 +135,116 @@ less patterns remaining to choose from. This will become important as we discuss
 Observe()
 \ ----------------------------------------------------------------------------------------------------------------------------- /
 
+If the name of this function makes no sense to you, don't worry that's to be expected. Here's my poor, layman's explanation
+of what this function is in reference to: It is referring to quantum mechanics here, specifically in relation to superposition
+of quantum particles. While unobserved, quantum particles live in this state of superposition, where there are a multitude of 
+possible places that the particle could actually be. It is only when the particle becomes observed that a position is chosen,
+this is referred to as a collapse of the wave function to a single final outcome. Hopefully now it has become pretty clear
+why this algorithm is called Wave Function Collapse, but in case it's still a little muddy let me explain further by completing
+the analogy. In our instance, each pixel is a quantum particle: it lives in this state of uncertainty as it has all these
+values it could possible be, these being the patterns. It is only when a particle is observed that we are able to determine
+exactly which value it should end up being, and that's exactly what our Observe function models here: it makes a decision
+for a certain pixel about which pattern it should be.
+
+That's neat and all, but how do we actually do that? Well, let's dig into it.
+
+1. First off, we need to find which pixel has the lowest entropy. We ignore all pixels that have only 1 pattern remaining, 
+    since those are already solved / determined. We want the lowest entropy pixel because that's going to be the one
+    closest to being solved, it's the least random choice to make. The method also adds on a slight bit of noise, to be 
+    honest I don't know exactly why but it probably just makes it slightly more random.
+
+2. If we didn't select any of the pixels, that means thata all the pixels are solved and we're done making selections.
+    We quickly create the observed variable, which is just which pattern each pixel ended up selecting. Then we return
+    true to let everyone know the algorithm was a success.
+
+3. If we did make a selection, we then choose a random pattern from the patterns remaining and then ban all the other
+    patterns. We'll go into the Ban method next, but it's essentially just a delete button. We then return null to signify
+    that we've made a selection for one pixel, but we've neither solved nor contradicted the system.
+
+/ ----------------------------------------------------------------------------------------------------------------------------- \
+Ban(int i, int t)
+\ ----------------------------------------------------------------------------------------------------------------------------- /
+
+As mentioned earlier, Ban is just a delete button for a pattern (t) at a specific pixel value (i). Here's what changes when
+you give a pattern the banhammer:
+
+1. The value for that pattern in wave gets set to false, meaning not a possible choice.
+
+2. All values in compatible for that pattern get set to 0, since it has no adjacent compatible patterns as it's not a possibility.
+
+3. The sums for the input pixel are recalculated to reflect the pattern no longer being an option.
+
+4. The entropy for the input pixel is recalculated.
+
+5. The pixel / pattern pair is pushed to the stack to calculate the propogation effect of this pattern no longer being possible.
+
+And that's all there is to it.
+
+/ ----------------------------------------------------------------------------------------------------------------------------- \
+Propagate()
+\ ----------------------------------------------------------------------------------------------------------------------------- /
+
+The purpose of this function is to calculate the ripple effect of patterns being banned, as patterns that only fit to that pattern
+no longer become possible, and then patterns that depended on that pattern no longer become possible and so on. Here's how it works:
+
+1. Pop a pattern from the stack. For that pixel / pattern pair, check each cardinal direction.
+
+2. Make sure that the pixel is one we need to bother checking by calling OnBoundary (pixels on the boundary have no patterns).
+    Again, this only does anything if our output is not periodic. Make sure to wrap the value if it is periodic.
+
+3. Get the patterns that match our banned pattern on the current side and reduce the number of compatible patterns for those 
+    patterns.
+
+4. If this causes our non-banned pixel / pattern pair to no longer have any compatible patterns, ban that pixel / pattern pair 
+    as well.
+
+5. Repeat until we have nothing on the stack.
+
+/ ----------------------------------------------------------------------------------------------------------------------------- \
+Run(int seed, int limit)
+\ ----------------------------------------------------------------------------------------------------------------------------- /
+
+This is the generic structure of the actual algorithm itself. It's actually quite simple, so we'll just go over the outline:
+
+1. If wave is null, we know we haven't run the algorithm before so we call our Init() (aka our Model constructor in disguise.)
+
+2. Call clear and seed our random number generator so we can get a consistent output if we want that.
+
+3. We then make Observations and then Propagate those Observations until we either solve the system or reach a contradiction.
+    Alternatively, we may decide to set a limit on the number of Observation cycles we can make, and if we reach that then we 
+    stop and return true. If limit == 0, there is no limit to Observations we can make.
+
+And that's it, the main thing here is just the cycles of observation and propagation, that's about all that's going on here.
+
+/ ----------------------------------------------------------------------------------------------------------------------------- \
+Clear()
+\ ----------------------------------------------------------------------------------------------------------------------------- /
+
+Clear just sets up a new run of the algorithm. Here's a list of what gets set up:
+
+- wave gets every value sets to true, since each pattern is possible at the start.
+- compatible gets the number of compatible patterns set for each pattern at each pixel.
+- sumsOfOnes gets each value set to the default value of the number of weights, aka number of unique patterns. Why they didn't 
+    use T here, I really have no idea. Probably has to do with the other version of the algorithm.
+- sumsOfWeights gets each value set to the default value of the sum of all weights.
+- sumsOfWeightLogWeights gets each value set to the default value of the sum of all weightLogWeights.
+- entropies gets each value set to the default value of startingEntropy.
+
+In the OverlappingModel version of this algorithm, this is where the ground parameter comes into play by banning those patterns at
+the positions I mentioned previously.
+
+
+
+And there you have it, that's the algorithm. To close us out, something to mention is the nature of the code itself. A lot of 
+things about this code could be refactored in order to make it easier to understand, but the fact of the matter is is that it
+was likely to have been written more sensically to start out with and then refactored into its current state to optimize
+performance. After all, it was written to be a library and not really some code that tons of people are meant to read and 
+add on to. This is not to say that if you were to write your own version of this algorithm that you shouldn't break things 
+apart and use more memory-intesive or less optimal structures that make it easier to understand what's happening but impact
+performance, just understand the reasoning behind the current state of the code. You may also find it useful to dig into the 
+more complex math manipulating the arrays, there's some pretty clever stuff going on in there.
+
+In the repository and the repository that the source files come from, there are a number of links to this algorithm written 
+in a number of languages, so likely there's no need for you to write your own version unless you have a specific need. I hope 
+that this document and the comments within the code itself are helpful to your understanding, and good luck in whatever 
+project you plan on using this algorithm in!

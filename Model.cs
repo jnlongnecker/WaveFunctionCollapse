@@ -99,7 +99,7 @@ abstract class Model
             // Skip if we'd go off the map at this location and we don't want to do that
             if (OnBoundary(i % FMX, i / FMX)) continue;
 
-            // If our sumOfOnes has not been set yet, just return false
+            // If our sumOfOnes is 0, that's a contradiction and we return false
             int amount = sumsOfOnes[i];
             if (amount == 0) return false;
 
