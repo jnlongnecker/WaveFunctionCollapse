@@ -15,12 +15,14 @@ static class Stuff
 {
     public static int Random(this double[] a, double r)
     {
+        // Convert each value in the double array to a percentage
         double sum = a.Sum();
         for (int j = 0; j < a.Length; j++) a[j] /= sum;
 
         int i = 0;
         double x = 0;
 
+        // Return the index where the sum of preceeding values is at least r
         while (i < a.Length)
         {
             x += a[i];
@@ -28,9 +30,11 @@ static class Stuff
             i++;
         }
 
+        // Return 0 if r > 1
         return 0;
     }
 
+    // Raise an integer to the nth power
     public static long ToPower(this int a, int n)
     {
         long product = 1;
